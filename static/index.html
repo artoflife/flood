@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flood Evacuation — Cilacap</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0f1c;--card:#111827;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#38bdf8;--fastest:#3b82f6;--safest:#22c55e;--balanced:#f59e0b;--danger:#ef4444}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:grid;grid-template-columns:400px 1fr}
+.sb{background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.sb-h{padding:16px 20px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#0a0f1c,#1a1a3e)}
+.sb-h h1{font-size:16px;font-weight:700}.sb-h h1 span{color:var(--accent)}
+.sb-h p{font-size:11px;color:var(--muted);margin-top:2px}
+.pn{padding:14px 20px;border-bottom:1px solid var(--border)}
+.pn h2{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px}
+.inst{font-size:13px;color:var(--muted);line-height:1.7;padding:14px;background:var(--bg);border-radius:8px;border:1px dashed var(--border);text-align:center}
+.wg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ws{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+.ws .l{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.ws .v{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;margin-top:1px}
+.ws .u{font-size:11px;color:var(--muted);font-weight:400}
+.wi{display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 10px;background:var(--bg);border-radius:8px;border:1px solid var(--border)}
+.wi img{width:36px;height:36px}
+.rb{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:8px}
+.risk-1{background:#064e3b30;color:#6ee7b7;border:1px solid #065f4630}
+.risk-2{background:#1e3a5f30;color:#93c5fd;border:1px solid #1e3a5f50}
+.risk-3{background:#78350f30;color:#fcd34d;border:1px solid #78350f50}
+.risk-4{background:#7c2d1230;color:#fca5a5;border:1px solid #7c2d1250}
+.risk-5{background:#7f1d1d50;color:#fca5a5;border:1px solid #dc262680;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.rc{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:6px;cursor:pointer;transition:all .15s}
+.rc:hover{border-color:var(--accent);transform:translateX(2px)}
+.rc.act{border-color:var(--accent);box-shadow:0 0 16px rgba(56,189,248,.12)}
+.rc .tp{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.rc .sn{font-size:13px;font-weight:600;margin-top:3px}
+.rc .st{display:flex;gap:10px;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.rc .pb{height:3px;border-radius:2px;background:var(--border);margin-top:6px;overflow:hidden}
+.rc .pf{height:100%;border-radius:2px;transition:width .5s}
+.type-fastest .tp{color:var(--fastest)}.type-fastest .pf{background:var(--fastest)}
+.type-safest .tp{color:var(--safest)}.type-safest .pf{background:var(--safest)}
+.type-balanced .tp{color:var(--balanced)}.type-balanced .pf{background:var(--balanced)}
+.tag{display:inline-block;font-size:8px;padding:2px 6px;border-radius:3px;margin-top:4px;font-family:'JetBrains Mono',monospace}
+.tag-az{background:#1e3a5f50;color:#93c5fd}.tag-hv{background:#78350f30;color:#fcd34d}
+.tag-warn{background:#7f1d1d40;color:#fca5a5}
+.tag-rf{background:#064e3b30;color:#6ee7b7}
+.alt-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:5px;cursor:pointer;transition:all .15s;opacity:.7}
+.alt-card:hover{opacity:1;border-color:var(--muted)}
+.alt-card .alt-name{font-size:12px;font-weight:600}
+.alt-card .alt-stats{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.fc-row{display:flex;gap:4px;overflow-x:auto;padding:4px 0;margin-top:6px}
+.fc-item{flex:0 0 62px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px;text-align:center;font-size:9px}
+.fc-item img{width:24px;height:24px}
+.status{padding:8px 20px;background:var(--bg);border-top:1px solid var(--border);font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;justify-content:space-between;margin-top:auto}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px}
+.dot.on{background:#22c55e}.dot.off{background:#ef4444}
+#map{width:100%;height:100%}
+.leaflet-popup-content-wrapper{background:var(--card)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:10px!important;box-shadow:0 8px 32px rgba(0,0,0,.5)!important}
+.leaflet-popup-tip{background:var(--card)!important}
+.ld{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s}
+.ld.h{opacity:0;pointer-events:none}
+.ld span{color:var(--accent);font-size:15px;animation:pulse 1.5s infinite}
+.dest-label{background:white;color:#111;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;font-family:Outfit,sans-serif;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.4);border:2px solid}
+@media(max-width:768px){body{grid-template-columns:1fr;grid-template-rows:auto 1fr}.sb{max-height:45vh}}
+</style>
+</head>
+<body>
+<div class="ld" id="loader"><span>Memuat peta & data...</span></div>
+<div class="sb">
+  <div class="sb-h">
+    <h1><span>Flood Evacuation</span> System v4</h1>
+    <p>1 Shelter + 3 Rute + 2 Alternatif | BMKG + RF + Azure Maps</p>
+  </div>
+  <div class="pn" id="p-inst"><h2>Panduan</h2><div class="inst">Klik <b style="color:var(--danger)">titik merah</b> di peta<br><br>Otomatis: cuaca BMKG + 3 rute ke shelter terdekat<br>(Fastest / Safest / Balanced lewat jalan berbeda)<br>+ 2 shelter alternatif sebagai backup</div></div>
+  <div class="pn" id="p-weather" style="display:none">
+    <h2>Cuaca BMKG — <span id="w-name"></span></h2>
+    <div class="wi"><img id="w-img" src="" style="display:none"><div><div style="font-size:13px;font-weight:600" id="w-desc">--</div><div style="font-size:10px;color:var(--muted)" id="w-sub"></div></div></div>
+    <div class="wg" style="margin-top:8px">
+      <div class="ws"><div class="l">Hujan 24h</div><div class="v" id="w-rain">--<span class="u"> mm</span></div></div>
+      <div class="ws"><div class="l">Kelembapan</div><div class="v" id="w-hu">--<span class="u"> %</span></div></div>
+      <div class="ws"><div class="l">Suhu</div><div class="v" id="w-temp">--<span class="u"> °C</span></div></div>
+      <div class="ws"><div class="l">Angin</div><div class="v" id="w-wind">--<span class="u"> km/h</span></div></div>
+    </div>
+    <div id="w-risk"></div>
+    <div class="fc-row" id="fc-row"></div>
+    <div id="w-src" style="font-size:9px;color:var(--muted);margin-top:4px"></div>
+  </div>
+  <div class="pn" id="p-routes" style="display:none">
+    <h2>Shelter Utama: <span id="sh-name" style="color:var(--accent)"></span></h2>
+    <div id="route-cards"></div>
+  </div>
+  <div class="pn" id="p-alt" style="display:none">
+    <h2>Shelter Alternatif</h2>
+    <div id="alt-cards"></div>
+  </div>
+  <div class="status"><span><span class="dot" id="api-dot"></span><span id="api-txt">...</span></span><span id="clock"></span></div>
+</div>
+<div id="map"></div>
+<script>
+const API=window.location.origin;
+let routeLines=[],markers=[];
+
+const map=L.map('map',{zoomControl:false}).setView([-7.45,108.9],10);
+L.control.zoom({position:'topright'}).addTo(map);
+const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:18}).addTo(map);
+const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri'});
+L.control.layers({'Street':osm,'Satellite':sat},{},{position:'topright'}).addTo(map);
+const floodLyr=L.layerGroup().addTo(map), shelterLyr=L.layerGroup().addTo(map);
+
+async function loadData(){
+  const fps=await(await fetch(`${API}/api/flood-points`)).json();
+  const heat=[];
+  fps.forEach(fp=>{heat.push([fp.Latitude,fp.Longitude,1]);
+    const m=L.circleMarker([fp.Latitude,fp.Longitude],{radius:7,color:'#c0392b',fillColor:'#e74c3c',fillOpacity:.85,weight:2}).bindTooltip(fp.Nama);
+    m.on('click',()=>analyze(fp)); m.addTo(floodLyr);});
+  if(L.heatLayer)L.heatLayer(heat,{radius:20,blur:15,maxZoom:13,gradient:{0.2:'blue',0.4:'lime',0.6:'yellow',0.8:'orange',1:'red'}}).addTo(map);
+  const shs=await(await fetch(`${API}/api/shelters`)).json();
+  shs.forEach(sh=>{L.circleMarker([sh.Latitude,sh.Longitude],{radius:4,color:'#27ae60',fillColor:'#2ecc71',fillOpacity:.6,weight:1}).bindTooltip(sh.Nama).addTo(shelterLyr);});
+}
+
+function clearOverlays(){routeLines.forEach(l=>map.removeLayer(l));routeLines=[];markers.forEach(m=>map.removeLayer(m));markers=[];}
+
+async function analyze(fp){
+  clearOverlays();
+  document.getElementById('p-inst').style.display='none';
+  ['p-weather','p-routes','p-alt'].forEach(id=>document.getElementById(id).style.display='block');
+  document.getElementById('w-name').textContent=fp.Nama;
+  document.getElementById('w-desc').textContent='Memuat cuaca BMKG...';
+  document.getElementById('route-cards').innerHTML='<div class="inst">Menghitung 3 rute via Azure Maps...</div>';
+  document.getElementById('alt-cards').innerHTML='';
+
+  try{
+    const r=await(await fetch(`${API}/api/analyze-village`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:fp.Latitude,lon:fp.Longitude,nama:fp.Nama})})).json();
+    if(r.error){alert(r.error);return;}
+
+    // Weather
+    const w=r.weather;
+    document.getElementById('w-desc').textContent=w.weather_desc||'--';
+    document.getElementById('w-sub').textContent=`Kec. ${w.kecamatan||'--'} | ${w.source}`;
+    document.getElementById('w-rain').innerHTML=`${w.rainfall_24h}<span class="u"> mm</span>`;
+    document.getElementById('w-hu').innerHTML=`${w.humidity_now}<span class="u"> %</span>`;
+    document.getElementById('w-temp').innerHTML=`${w.temperature}<span class="u"> °C</span>`;
+    document.getElementById('w-wind').innerHTML=`${w.wind_speed}<span class="u"> km/h</span>`;
+    document.getElementById('w-src').textContent=`${w.source} | ${w.adm4||''}`;
+    if(w.weather_image){document.getElementById('w-img').src=w.weather_image;document.getElementById('w-img').style.display='block';}
+    else document.getElementById('w-img').style.display='none';
+    document.getElementById('w-risk').innerHTML=`<div class="rb risk-${r.risk_level}">Risk ${r.risk_level}: ${r.risk_label} (delay x${w.delay_factor})</div>`;
+    const fcR=document.getElementById('fc-row');fcR.innerHTML='';
+    (w.forecast_24h||[]).forEach(f=>{const t=(f.local_datetime||'').slice(11,16);
+      fcR.innerHTML+=`<div class="fc-item"><div style="color:var(--muted)">${t}</div>${f.image?`<img src="${f.image}">`:''}
+      <div style="color:var(--accent);font-family:'JetBrains Mono';font-weight:600;font-size:10px">${f.rainfall_3h}mm</div></div>`;});
+
+    // Shelter name
+    document.getElementById('sh-name').textContent=r.shelter.nama;
+
+    // Draw flood zone markers
+    (r.nearby_flood_points||[]).forEach(fp2=>{
+      const c=L.circle([fp2.lat,fp2.lon],{radius:800,color:'#ef4444',fillColor:'#ef4444',fillOpacity:.1,weight:1,dashArray:'4 4'}).bindTooltip(`Zona risiko: ${fp2.nama}`).addTo(map);
+      markers.push(c);});
+
+    // Shelter destination marker
+    const shM=L.marker([r.shelter.lat,r.shelter.lon],{icon:L.divIcon({className:'',html:`<div class="dest-label" style="border-color:var(--accent)">${r.shelter.nama}</div>`,iconSize:[0,0],iconAnchor:[-5,15]})}).addTo(map);
+    markers.push(shM);
+
+    // 3 Routes to same shelter
+    const colors={Fastest:'#3b82f6',Safest:'#22c55e',Balanced:'#f59e0b'};
+    const icons={Fastest:'\u{1F535}',Safest:'\u{1F7E2}',Balanced:'\u{1F7E0}'};
+    const weights={Fastest:5,Safest:4,Balanced:3};
+    const dashes={Fastest:null,Safest:'10 6',Balanced:'6 4'};
+    let html='';
+    const bounds=L.latLngBounds([[fp.Latitude,fp.Longitude],[r.shelter.lat,r.shelter.lon]]);
+
+    r.routes.forEach((rt,i)=>{
+      const cls=rt.type.toLowerCase();
+      const prob=(rt.probability*100).toFixed(1);
+      const isAz=rt.route_source.includes('azure');
+      const srcTag=isAz?`<span class="tag tag-az">Azure Maps</span>`:`<span class="tag tag-hv">Haversine</span>`;
+      const warnTag=rt.road_warning?`<span class="tag tag-warn">${rt.road_warning}</span>`:'';
+      const rfTag=rt.rf_agrees?`<span class="tag tag-rf">RF: ${rt.rf_prediction}</span>`:`<span class="tag tag-warn">RF suggests: ${rt.rf_prediction}</span>`;
+
+      html+=`<div class="rc type-${cls} ${i===0?'act':''}" onclick="zoomRoute(${i})">
+        <div class="tp">${icons[rt.type]} ${rt.type}</div>
+        <div class="st"><span>${rt.distance_km} km</span><span>${rt.travel_time_min} min</span><span>prob: ${prob}%</span></div>
+        <div class="pb"><div class="pf" style="width:${prob}%"></div></div>
+        <div style="margin-top:4px">${srcTag} ${rfTag} ${warnTag}</div>
+        ${rt.avoided_zones?`<div style="font-size:9px;color:var(--safest);margin-top:2px">Menghindari ${rt.avoided_zones} zona banjir</div>`:''}
+      </div>`;
+
+      const poly=rt.polyline||[[fp.Latitude,fp.Longitude],[r.shelter.lat,r.shelter.lon]];
+      const line=L.polyline(poly,{color:colors[rt.type],weight:weights[rt.type],opacity:i===0?.9:.45,dashArray:dashes[rt.type]}).addTo(map);
+      line.bindTooltip(`${rt.type}: ${rt.distance_km}km, ${rt.travel_time_min}min`,{sticky:true});
+      routeLines.push(line);
+      bounds.extend(line.getBounds());
+    });
+    document.getElementById('route-cards').innerHTML=html;
+
+    // Alternative shelters
+    let altHtml='';
+    (r.alternatives||[]).forEach((alt,i)=>{
+      altHtml+=`<div class="alt-card" onclick="showAlt(${alt.shelter_lat},${alt.shelter_lon},'${alt.shelter_name.replace(/'/g,"\\'")}')">
+        <div class="alt-name">${i+1}. ${alt.shelter_name}</div>
+        <div class="alt-stats">${alt.distance_km} km | ${alt.travel_time_min} min | RF: ${alt.rf_prediction}</div>
+      </div>`;
+      // Draw faded line
+      const poly=alt.polyline||[[fp.Latitude,fp.Longitude],[alt.shelter_lat,alt.shelter_lon]];
+      const line=L.polyline(poly,{color:'#94a3b8',weight:1.5,opacity:.3,dashArray:'4 8'}).addTo(map);
+      routeLines.push(line);
+    });
+    document.getElementById('alt-cards').innerHTML=altHtml||'<div style="font-size:11px;color:var(--muted)">Tidak ada alternatif</div>';
+
+    map.fitBounds(bounds,{padding:[50,50]});
+  }catch(e){document.getElementById('route-cards').innerHTML=`<div class="inst" style="color:var(--danger)">Error: ${e.message}</div>`;}
+}
+
+function zoomRoute(i){
+  if(routeLines[i])map.fitBounds(routeLines[i].getBounds(),{padding:[60,60]});
+  document.querySelectorAll('.rc').forEach((c,j)=>{c.classList.toggle('act',j===i);});
+  routeLines.slice(0,3).forEach((l,j)=>{l.setStyle({weight:j===i?5:2.5,opacity:j===i?.9:.35});});
+}
+
+function showAlt(lat,lon,name){map.setView([lat,lon],14);L.popup().setLatLng([lat,lon]).setContent(`<b>Alternatif:</b> ${name}`).openOn(map);}
+
+async function checkHealth(){try{const d=await(await fetch(`${API}/api/health`)).json();
+  document.getElementById('api-dot').className='dot on';
+  document.getElementById('api-txt').textContent=`OK | ORS:${d.ors_key?'ON':'OFF'} | OSRM:${d.osrm} | Log:${d.prediction_log}`;}
+  catch{document.getElementById('api-dot').className='dot off';document.getElementById('api-txt').textContent='Offline';}}
+function tick(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('id-ID');}
+
+const leg=L.control({position:'bottomright'});
+leg.onAdd=function(){const d=L.DomUtil.create('div');d.innerHTML=`<div style="background:#111827;padding:10px;border-radius:8px;border:1px solid #1e293b;font-size:11px;color:#e2e8f0;font-family:Outfit;box-shadow:0 2px 8px rgba(0,0,0,.4)">
+<b>Legend</b><hr style="border-color:#1e293b;margin:3px 0">
+<span style="color:#e74c3c">\u25CF</span> Desa rawan banjir<br>
+<span style="color:#2ecc71">\u25CF</span> Shelter evakuasi<br>
+<span style="color:#ef4444;font-size:9px">\u25CB</span> Zona risiko banjir<hr style="border-color:#1e293b;margin:3px 0">
+<span style="color:#3b82f6">\u2501</span> Fastest (tercepat)<br>
+<span style="color:#22c55e">- -</span> Safest (teraman)<br>
+<span style="color:#f59e0b">\u00B7\u00B7</span> Balanced<br>
+<span style="color:#94a3b8">\u00B7\u00B7</span> Alternatif<hr style="border-color:#1e293b;margin:3px 0">
+<i style="font-size:9px;color:#94a3b8">Klik titik merah untuk analisis</i></div>`;return d;};
+leg.addTo(map);
+
+async function init(){await checkHealth();await loadData();document.getElementById('loader').classList.add('h');setInterval(tick,1000);tick();}
+init();
+</script>
+</body>
+</html>
