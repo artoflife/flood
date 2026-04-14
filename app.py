@@ -39,10 +39,21 @@ try: model = joblib.load(MODEL_PATH); logger.info(f"Model: {MODEL_PATH}")
 except: model = None; logger.error("Model failed")
 
 try:
-    df_flood = pd.read_csv(FLOOD_CSV); df_flood.columns = df_flood.columns.str.strip()
-    df_shelters = pd.read_csv(SHELTER_CSV); df_shelters.columns = df_shelters.columns.str.strip()
-except: df_flood, df_shelters = pd.DataFrame(), pd.DataFrame()
+    df_flood = pd.read_csv(FLOOD_CSV)
+    df_flood.columns = df_flood.columns.str.strip()
+    logger.info(f"Flood CSV loaded: {len(df_flood)} rows from {FLOOD_CSV}")
+except Exception as e:
+    logger.error(f"Failed to load flood CSV ({FLOOD_CSV}): {e}")
+    df_flood = pd.DataFrame()
 
+try:
+    df_shelters = pd.read_csv(SHELTER_CSV)
+    df_shelters.columns = df_shelters.columns.str.strip()
+    logger.info(f"Shelter CSV loaded: {len(df_shelters)} rows from {SHELTER_CSV}")
+except Exception as e:
+    logger.error(f"Failed to load shelter CSV ({SHELTER_CSV}): {e}")
+    df_shelters = pd.DataFrame()
+  
 # ── API Keys ──
 ORS_KEY = os.environ.get("ORS_API_KEY", "")
 # No key needed for OSRM
