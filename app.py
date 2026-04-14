@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # ── Load Model + Data ──
 MODEL_PATH = os.environ.get("MODEL_PATH", "model/random_forest_model.pkl")
 FLOOD_CSV = os.environ.get("FLOOD_CSV", "data/Desa_Rawan_Banjir.csv")
-SHELTER_CSV = os.environ.get("SHELTER_CSV", "data/Tempat_Evakuasi_Final__1_.csv")
+SHELTER_CSV = os.environ.get("SHELTER_CSV", "data/Tempat_Evakuasi_Final.csv")
 
 try: model = joblib.load(MODEL_PATH); logger.info(f"Model: {MODEL_PATH}")
 except: model = None; logger.error("Model failed")
