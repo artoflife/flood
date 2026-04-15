@@ -503,6 +503,18 @@ def api_health():
         "ors_key":bool(ORS_KEY),"osrm":"available",
         "routing_chain":"ORS → OSRM → Haversine",
         "prediction_log":log_n})
+  
+@app.route("/api/kecamatan")
+def api_kecamatan():
+    nama = request.args.get("nama")
+    adm4 = request.args.get("adm4")
+    if nama:
+        hits = [k for k in KECAMATAN if nama.lower() in k["nama"].lower()]
+        return jsonify(hits)
+    if adm4:
+        hits = [k for k in KECAMATAN if k["adm4"] == adm4]
+        return jsonify(hits[0] if hits else {"error": "not found"}), (200 if hits else 404)
+    return jsonify({"count": len(KECAMATAN), "data": KECAMATAN})
 
 @app.route("/")
 def index(): return send_from_directory("static","index.html")
