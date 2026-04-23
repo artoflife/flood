@@ -24,6 +24,9 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from math import radians, sin, cos, sqrt, atan2
 from threading import Lock
+from download_model import download_model
+
+download_model()
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
@@ -31,7 +34,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Load Model + Data ──
-MODEL_PATH = os.environ.get("MODEL_PATH", "model/random_forest_model.pkl")
+MODEL_PATH = "model.pkl"
 FLOOD_CSV = os.environ.get("FLOOD_CSV", "data/Desa_Rawan_Banjir.csv")
 SHELTER_CSV = os.environ.get("SHELTER_CSV", "data/Tempat_Evakuasi_Final.csv")
 
